@@ -1,18 +1,23 @@
 import logging
 import json
-
-from flask import Blueprint, request, jsonify, current_app
-
-from .decorators.security import signature_required
+from fastapi import FastAPI, Request, HTTPException, Depends, Response
 from .utils.whatsapp_utils import (
     process_whatsapp_message,
     is_valid_whatsapp_message,
 )
+from .decorators.security import signature_required
 
-webhook_blueprint = Blueprint("webhook", __name__)
+app = FastAPI()
+
+@app.get("/")
+async def home():
+    """
+    Home route to display a simple welcome message.
+    """
+    return "Welcome to the WhatsApp API!"
 
 
-def handle_message():
+def handle_message(body):
     """
     Handle incoming webhook events from the WhatsApp API.
 
@@ -26,64 +31,90 @@ def handle_message():
     Returns:
         response: A tuple containing a JSON response and an HTTP status code.
     """
-    body = request.get_json()
-    # logging.info(f"request body: {body}")
-
-    # Check if it's a WhatsApp status update
-    if (
-        body.get("entry", [{}])[0]
-        .get("changes", [{}])[0]
-        .get("value", {})
-        .get("statuses")
-    ):
-        logging.info("Received a WhatsApp status update.")
-        return jsonify({"status": "ok"}), 200
+    logging.info(f"Handling new message: {body}")
 
     try:
+        if not body:
+            logging.error("No JSON body found in the request")
+            raise HTTPException(status_code=400, detail="No data provided")
+
         if is_valid_whatsapp_message(body):
-            process_whatsapp_message(body)
-            return jsonify({"status": "ok"}), 200
+            value = body["entry"][0]["changes"][0]["value"]
+            if "messages" in value:
+                logging.info("Processing message")
+                process_whatsapp_message(body)
+            elif "statuses" in value:
+                logging.info("Received a status update")
+                # Do not trigger message sending on status updates
+            return {"status": "ok"}
         else:
-            # if the request is not a WhatsApp API event, return an error
-            return (
-                jsonify({"status": "error", "message": "Not a WhatsApp API event"}),
-                404,
-            )
+            logging.error("Invalid WhatsApp API event structure")
+            raise HTTPException(status_code=400, detail="Not a WhatsApp API event")
     except json.JSONDecodeError:
         logging.error("Failed to decode JSON")
-        return jsonify({"status": "error", "message": "Invalid JSON provided"}), 400
+        raise HTTPException(status_code=400, detail="Invalid JSON provided")
+    except KeyError as e:
+        logging.error(f"Missing expected key in the JSON data: {e}")
+        raise HTTPException(status_code=400, detail=f"Malformed data provided: {e}")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 
 
-# Required webhook verifictaion for WhatsApp
-def verify():
-    # Parse params from the webhook verification request
-    mode = request.args.get("hub.mode")
-    token = request.args.get("hub.verify_token")
-    challenge = request.args.get("hub.challenge")
-    # Check if a token and mode were sent
+@app.get("/webhook")
+async def webhook_get(request: Request):
+    """
+    Verify the webhook with the token provided by WhatsApp.
+    """
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+
     if mode and token:
-        # Check the mode and token sent are correct
-        if mode == "subscribe" and token == current_app.config["VERIFY_TOKEN"]:
-            # Respond with 200 OK and challenge token from the request
+        if mode == "subscribe" and token == os.getenv("VERIFY_TOKEN"):
             logging.info("WEBHOOK_VERIFIED")
-            return challenge, 200
+            return Response(content=challenge, media_type="text/plain")
         else:
-            # Responds with '403 Forbidden' if verify tokens do not match
             logging.info("VERIFICATION_FAILED")
-            return jsonify({"status": "error", "message": "Verification failed"}), 403
+            raise HTTPException(status_code=403, detail="Verification failed")
     else:
-        # Responds with '400 Bad Request' if verify tokens do not match
         logging.info("MISSING_PARAMETER")
-        return jsonify({"status": "error", "message": "Missing parameters"}), 400
+        raise HTTPException(status_code=400, detail="Missing parameters")
 
 
-@webhook_blueprint.route("/webhook", methods=["GET"])
-def webhook_get():
-    return verify()
+@app.post("/webhook")
+@signature_required  # Ensure your decorator is adapted for FastAPI
+async def webhook_post(request: Request):
+    try:
+        body = await request.json()
+        logging.info(f"Received WhatsApp message: {json.dumps(body, indent=4)}")
 
-@webhook_blueprint.route("/webhook", methods=["POST"])
-@signature_required
-def webhook_post():
-    return handle_message()
+        # Extract the relevant data from the payload
+        if "entry" in body:
+            for entry in body["entry"]:
+                for change in entry["changes"]:
+                    if "value" in change and "messages" in change["value"]:
+                        for message in change["value"]["messages"]:
+                            from_id = message["from"]
+                            message_body = message.get("text", {}).get("body", "")
+                            sender_name = change["value"]["contacts"][0]["profile"].get("name", "Unknown")
+                            
+                            logging.info(f"Message from {sender_name} ({from_id}): {message_body}")
+                            
+                            # Process the message (e.g., send a response)
+                            process_whatsapp_message(body)
 
+                            return {"status": "success", "from": from_id, "message": message_body}
+
+        return {"status": "no_message_found"}
+
+    except json.JSONDecodeError:
+        logging.error("Failed to decode JSON")
+        raise HTTPException(status_code=400, detail="Invalid JSON provided")
+    except KeyError as e:
+        logging.error(f"Missing expected key in the JSON data: {e}")
+        raise HTTPException(status_code=400, detail=f"Malformed data provided: {e}")
+    except Exception as e:
+        logging.error(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred")
 

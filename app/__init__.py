@@ -1,16 +1,12 @@
-from flask import Flask
+from fastapi import FastAPI
 from app.config import load_configurations, configure_logging
-from .views import webhook_blueprint
-
 
 def create_app():
-    app = Flask(__name__)
+    app = FastAPI()
 
-    # Load configurations and logging settings
-    load_configurations(app)
-    configure_logging()
-
-    # Import and register blueprints, if any
-    app.register_blueprint(webhook_blueprint)
+    configure_logging()  # Initialize logging
+    load_configurations(app)  # Load configurations into app state
 
     return app
+
+app = create_app()

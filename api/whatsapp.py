@@ -1,7 +1,6 @@
 import logging
 import json
 from fastapi import Request, HTTPException, Depends, Response
-from fastapi.responses import HTMLResponse
 from app.utils.whatsapp_utils import (
     process_whatsapp_message,
     is_valid_whatsapp_message,
@@ -9,23 +8,9 @@ from app.utils.whatsapp_utils import (
 from app.decorators.security import signature_required
 from app import app  # Import the app from __init__.py
 
-@app.get("/", response_class=HTMLResponse)  # Set response class here
+@app.get("/")
 async def home():
-    logging.info("Homepage accessed")  # Write to console
-    html_content = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My Website</title>
-    </head>
-    <body>
-        <h1>Hello world!</h1>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content, status_code=200)
+    return "Welcome to the WhatsApp API!"
 
 @app.get("/webhook")
 async def webhook_get(request: Request):

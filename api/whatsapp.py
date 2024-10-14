@@ -10,8 +10,22 @@ from app import app  # Import the app from __init__.py
 
 @app.get("/")
 async def home():
-    return "Welcome to the WhatsApp API!"
-
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF
+-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Website</title>
+    </head>
+    <body>
+        <h1>Hello world!</h1>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
+    
 @app.get("/webhook")
 async def webhook_get(request: Request):
     verify_token = request.app.state.config.get("VERIFY_TOKEN")  # Access config correctly

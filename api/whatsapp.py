@@ -9,10 +9,10 @@ from app.utils.whatsapp_utils import (
 from app.decorators.security import signature_required
 from app import app  # Import the app from __init__.py
 
-@app.get("/", response_class=HTMLResponse)  # Ensures the response is treated as HTML
+@app.get("/", response_class=HTMLResponse)  # Set response class here
 async def home():
     logging.info("Homepage accessed")  # Write to console
-    html_content = """  
+    html_content = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -25,7 +25,9 @@ async def home():
     </body>
     </html>
     """
-    return HTMLResponse(content=html_content, status_code=200, media_type="text/html")
+    # Set headers to prevent unintended download behavior
+    headers = {"Content-Type": "text/html; charset=utf-8"}
+    return HTMLResponse(content=html_content, status_code=200, headers=headers)
 
 @app.get("/webhook")
 async def webhook_get(request: Request):

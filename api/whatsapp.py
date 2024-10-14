@@ -17,7 +17,7 @@ from app import app  # Import the app from __init__.py
            <title>Legendary WhatsApp Bots</title>
        </head>
        <body>
-           <h1>Welcome to the home of legendary WhatsApp bots!</h1>
+           <h1>Welcome to the home of legendary WhatsApp bots!!</h1>
        </body>
        </html>
        """

@@ -1,6 +1,7 @@
 import logging
 import json
 from fastapi import Request, HTTPException, Depends, Response
+from fastapi.responses import HTMLResponse
 from app.utils.whatsapp_utils import (
     process_whatsapp_message,
     is_valid_whatsapp_message,
@@ -14,8 +15,7 @@ async def home():
     <!DOCTYPE html>
     <html lang="en">
     <head>
-        <meta charset="UTF
--8">
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>My Website</title>
     </head>
@@ -25,7 +25,8 @@ async def home():
     </html>
     """
     return HTMLResponse(content=html_content, status_code=200)
-    
+
+
 @app.get("/webhook")
 async def webhook_get(request: Request):
     verify_token = request.app.state.config.get("VERIFY_TOKEN")  # Access config correctly

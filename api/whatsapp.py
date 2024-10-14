@@ -11,8 +11,9 @@ from app import app  # Import the app from __init__.py
 
 @app.get("/")
 async def home():
-     logging.info("Homepage accessed")  # Write to console
-    html_content = """
+    logging.info("Homepage accessed")  # Write to console
+    html_content = """  #
+ Ensure this line is indented correctly (4 spaces)
     <!DOCTYPE html>
     <html lang="en">
     <head>

@@ -11,7 +11,21 @@ from app import app  # Import the app from __init__.py
 
 @app.get("/")
 async def home():
-    return HTMLResponse("<h1>Hello!</h1>", status_code=200)
+     logging.info("Homepage accessed")  # Write to console
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>My Website</title>
+    </head>
+    <body>
+        <h1>Hello world!</h1>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 @app.get("/webhook")

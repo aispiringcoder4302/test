@@ -25,9 +25,7 @@ async def home():
     </body>
     </html>
     """
-    # Set headers to prevent unintended download behavior
-    headers = {"Content-Type": "text/html; charset=utf-8"}
-    return HTMLResponse(content=html_content, status_code=200, headers=headers)
+    return HTMLResponse(content=html_content, status_code=200)
 
 @app.get("/webhook")
 async def webhook_get(request: Request):

@@ -8,19 +8,9 @@ from app.utils.whatsapp_utils import (
 from app.decorators.security import signature_required
 from app import app  # Import the app from __init__.py
 
-@app.get("/", response_class=HTMLResponse) 
-   async def home():
-       return """
-       <!DOCTYPE html>
-       <html>
-       <head>
-           <title>Legendary WhatsApp Bots</title>
-       </head>
-       <body>
-           <h1>Welcome to the home of legendary WhatsApp bots!!</h1>
-       </body>
-       </html>
-       """
+@app.get("/")
+async def home():
+    return "Welcome to the WhatsApp API!"
 
 @app.get("/webhook")
 async def webhook_get(request: Request):
